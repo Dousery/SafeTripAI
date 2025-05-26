@@ -1,0 +1,11 @@
+numpy
+pandas
+datetime
+python-dotenv
+streamlit
+plotly
+scipy
+statsmodels
+Pillow
+openai
+langchain
