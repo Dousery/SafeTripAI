@@ -22,7 +22,7 @@ np.random.seed(42)
 
 # --- Sayfa konfigürasyonu ---
 st.set_page_config(
-    page_title="Turizm Sağlık Danışmanı",
+    page_title="Tourism Health Consultant",
     page_icon="🌍",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -131,31 +131,31 @@ st.markdown("""
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
-    st.error("⚠️ GOOGLE_API_KEY bulunamadı. Lütfen .env dosyasında API anahtarınızı ayarlayın.")
+    st.error("⚠️ GOOGLE_API_KEY not found. Please set your API key in the .env file.")
     st.stop()
 
 genai.configure(api_key=api_key)
 llm = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- Başlık ve Giriş ---
-st.markdown('<h1 class="main-header">🌍 Turizm Destinasyonları için Bulaşıcı Hastalık Danışmanı</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🌍 Infectious Disease Advisor for Tourism Destinations</h1>', unsafe_allow_html=True)
 
-with st.expander("ℹ️ Uygulama Hakkında", expanded=False):
+with st.expander("ℹ️ About the App", expanded=False):
     st.markdown("""
-    Bu uygulama, seyahat planlaması yaparken bulaşıcı hastalık riski açısından en güvenli destinasyonları 
-    belirlemenize yardımcı olur. Yapay zeka destekli analiz ile seçtiğiniz eyaletin ve benzer eyaletlerin 
-    sağlık verilerini değerlendirir ve en güvenli seyahat seçeneğini önerir.
+    This app helps you identify the safest destinations in terms of infectious disease 
+    risk when planning travel. With AI-powered analysis, it evaluates the health data of your 
+    chosen state and similar states and recommends the safest travel option.
     
-    **Özellikler:**
-    - Eyaletlere göre bulaşıcı hastalık tahminleri
-    - Benzer iklim ve coğrafi koşullara sahip alternatif destinasyon önerileri
-    - Kişi başına düşen hastalık oranlarına göre risk değerlendirmesi
-    - Görselleştirilmiş veri analizleri
+    **Features:**
+    - Infectious disease estimates by state
+    - Suggestions for alternative destinations with similar climate and geographical conditions
+    - Risk assessment according to disease rates per capita
+    - Visualized data analytics
     """)
 
 # --- Sidebar ---
 with st.sidebar:
-    st.markdown("### 🔍 Destinasyon Analizi")
+    st.markdown("### 🔍 Destination Analysis")
     
     # --- CSV dosyalarını oku ---
     @st.cache_data
@@ -199,43 +199,43 @@ with st.sidebar:
     states_list = copy_merged['Jurisdiction of Occurrence'].dropna().unique().tolist()
     states_list = [state for state in states_list if state != "United States"]
     
-    state_options = ["-- Eyalet seçin --"] + sorted(states_list)
-    state = st.selectbox("🏙️ Ziyaret etmek istediğiniz eyaleti seçin:", state_options)
+    state_options = ["-- Select a State --"] + sorted(states_list)
+    state = st.selectbox("🏙️ Select a State to visit:", state_options)
 
-    if state == "-- Eyalet seçin --":
-        st.warning("Lütfen analiz yapmadan önce bir eyalet seçin.")
+    if state == "-- Select a State --":
+        st.warning("Please select a state before starting the analysis.")
     
     # --- Takvimle tarih seçimi ---
     min_date = datetime.date(2024, 1, 1)
-    selected_date = st.date_input("📅 Seyahat tarihinizi seçin:", value=min_date, min_value=min_date)
+    selected_date = st.date_input("📅 Select a date for your trip:", value=min_date, min_value=min_date)
 
     if selected_date == min_date:
-        st.warning("Lütfen seyahat tarihi seçin.")
+        st.warning("Please select a date for your trip.")
 
     
     st.markdown(f"""
     <div class="info-box">
-        <strong>Seçilen Eyalet:</strong> {state}<br>
-        <strong>Seçilen Tarih:</strong> {selected_date.strftime("%d-%m-%Y")}
+        <strong>Selected State:</strong> {state}<br>
+        <strong>Selected Date:</strong> {selected_date.strftime("%d-%m-%Y")}
     </div>
     """, unsafe_allow_html=True)
     
     start_analysis = False
-    if state != "-- Eyalet seçin --" and selected_date != min_date:
-        start_analysis = st.button("🔍 Analizi Başlat")
+    if state != "-- Select a State --" and selected_date != min_date:
+        start_analysis = st.button("🔍 Start Analysis")
         if start_analysis:
             choosen_state = state
-            with st.spinner("Veriler analiz ediliyor..."):
+            with st.spinner("Analyzing data..."):
                 progress_bar = st.progress(0)
                 for i in range(100):
                     import time
                     time.sleep(0.01)
                     progress_bar.progress(i + 1)
-                st.success("Analiz tamamlandı!")
+                st.success("Analysis completed!")
         else:
-            st.info("Analize başlamak için lütfen eyalet ve tarih seçin.")
+            st.info("Select a state and date to start the analysis.")
     else:
-        st.info("Analize başlamak için lütfen eyalet ve tarih seçin.")
+        st.info("Select a state and date to start the analysis.")
 
 # --- Analiz ve ana ekran ---
 if 'start_analysis' in locals() and start_analysis:
@@ -249,32 +249,32 @@ if 'start_analysis' in locals() and start_analysis:
             if list_text:
                 return literal_eval(list_text.group(0))
         except Exception as e:
-            print("Liste çıkarma hatası:", e)
+            print("Error extracting list from response:", e)
         return []
     
     @st.cache_data(show_spinner=True)
     def get_similar_states_via_llm(user_state: str, states: list[str], date: str) -> list[str]:
         prompt = f"""
-Aşağıda listesi verilen ABD eyaletleri içinde, {user_state} eyaletine {date} tarihinde
-iklim, coğrafya ve kültürel yapı açısından en çok benzeyen tam olarak 3 farklı eyaletin adını, 
-sadece ve sadece aşağıdaki gibi Python listesi formatında döndür:
+Below is a list of US states. Among these states, find the three states that are most similar to 
+{user_state} on {date} in terms of climate, geography, and cultural structure.
+Return the names of these three states in the following Python list format:
 
-["Eyalet1", "Eyalet2", "Eyalet3"]
+["State1", "State2", "State3"]
 
-Başka hiçbir açıklama, kod bloğu, metin veya karakter ekleme. Sadece yukarıdaki gibi bir Python listesi döndür.
-Eyalet isimleri listede orijinal haliyle ve tırnak içinde olmalı.
-Eğer 3'ten az benzer buluyorsan, en yakın olanları seç ve yine 3 tane döndür.
-Eyalet listesi: {states}
+Do not add any other explanation, code block, text, or character. Only return a Python list in the format above.
+State names should be in their original form and enclosed in quotes.
+If you find fewer than 3 similar states, select the closest ones and return exactly 3.
+State list: {states}
 """
         try:
             response = llm.generate_content(prompt).text
             result = extract_list_from_response(response)
             if len(result) != 3:
-                st.error("LLM'den 3 alternatif eyalet alınamadı. Lütfen tekrar deneyin.")
+                st.error("Failed to get 3 alternative states from LLM. Please try again.")
                 st.stop()
             return result
         except Exception as e:
-            print("Benzer eyalet tahmini hatası:", e)
+            print("Error getting similar states:", e)
             return []
     
     # --- Benzer eyaletleri al ---
@@ -287,7 +287,7 @@ Eyalet listesi: {states}
     
     # --- Sol Kolon: Benzer Eyaletler ve Harita ---
     with col1:
-        st.markdown('<h3 class="subheader">🗺️ Benzer Destinasyonlar</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="subheader">🗺️ Similar Destinations</h3>', unsafe_allow_html=True)
         
         # ABD haritası (Plotly ile)
         @st.cache_data
@@ -585,7 +585,7 @@ Eyalet listesi: {states}
     
     # --- Sağ Kolon: Hastalık Tahminleri ve Öneriler ---  
     with col2:
-        st.markdown('<h3 class="subheader">📊 Hastalık Risk Analizi</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="subheader">📊 Disease Risk Analysis</h3>', unsafe_allow_html=True)
         
         # Hastalık verileri için yeni bir tablo oluştur
         disease_data = {}
@@ -600,24 +600,24 @@ Eyalet listesi: {states}
         
         # Veri tablosu
         disease_df = pd.DataFrame.from_dict(disease_data, orient='index')
-        disease_df.index.name = 'Eyalet'
+        disease_df.index.name = 'State'
         disease_df.reset_index(inplace=True)
-        disease_df.columns = ['Eyalet', 'Septicemia (Tahmin)', 'Influenza ve Pnömoni (Tahmin)', 'Milyon Başına Ölüm']
+        disease_df.columns = ['State', 'Septicemia (Forecast)', 'Influenza and Pneumonia (Forecast)', 'Death Rate per 1M']
         
         # Karşılaştırma grafiği oluştur
         fig = px.bar(
             disease_df, 
-            x='Eyalet', 
-            y='Milyon Başına Ölüm',
-            color='Milyon Başına Ölüm',
+            x='State', 
+            y='Death Rate per 1M',
+            color='Death Rate per 1M',
             color_continuous_scale='Blues',
-            title='Eyaletlere Göre 1 Milyon Başına Tahmin Edilen Ölüm Oranları',
+            title='Death Rates per 1M by State',
             height=400
         )
         
         fig.update_layout(
-            xaxis_title="Eyalet",
-            yaxis_title="1 Milyon Başına Ölüm",
+            xaxis_title="State",
+            yaxis_title="Death Rate per 1M",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(l=20, r=20, t=50, b=20),
@@ -642,7 +642,7 @@ Eyalet listesi: {states}
                 <div class="metric-card">
                     <div class="metric-label">{s}</div>
                     <div class="metric-value" {color_class}>{rate}</div>
-                    <div class="metric-label">1M başına ölüm</div>
+                    <div class="metric-label">Death Rate per 1M</div>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -670,7 +670,7 @@ Eyalet listesi: {states}
         }
     
         if not filtered_data:
-            return "❗ Uygun ölüm verisi bulunamadı. Lütfen verileri kontrol edin."
+            return "❗ No suitable death data found. Please check the data."
     
         # En güvenli eyaleti belirle (en düşük 1M başına ölüm oranı)
         safest_state = min(filtered_data.items(), key=lambda x: x[1]['Death Rate per 1M'])[0].title()
@@ -678,31 +678,31 @@ Eyalet listesi: {states}
         # Metin olarak veri gösterimi
         death_info_str = "\n".join([ 
             f"{state.title()}:\n"
-            f"  - Septicemia: {data['Septicemia']} ölüm\n"
-            f"  - Influenza and pneumonia: {data['Influenza and pneumonia']} ölüm\n"
-            f"  - 1M kişi başına ölüm oranı: {data['Death Rate per 1M']}"
+            f"  - Septicemia: {data['Septicemia']} death\n"
+            f"  - Influenza and pneumonia: {data['Influenza and pneumonia']} death\n"
+            f"  - Death rate per 1M: {data['Death Rate per 1M']}"
             for state, data in filtered_data.items()
         ])
     
         # LLM'e gönderilecek prompt
         prompt = f"""
-    Aşağıda {date} tarihi için bazı ABD eyaletlerinde iki hastalık (Septicemia ve Influenza and pneumonia) nedeniyle tahmin edilen ölüm verileri yer alıyor.
+    Below are the estimated deaths due to two diseases (Septicemia and Influenza and pneumonia) in some US states for {date}.
     
-    Amacın, seyahat için **en güvenli eyaleti** belirlemek.
+    Your goal is to determine the **safest state** to travel to.
     
-    Ölüm verileri:
+    Death data:
     
     {death_info_str}
     
-    Verilere göre, **1 milyon kişi başına ölüm oranı** en düşük olan eyalet: **{safest_state}**.
+    According to the data, the state with the **lowest death rate per 1M** is: **{safest_state}**.
     
-    Kullanıcıya şu bilgileri anlaşılır ve sohbet havasında aktar:
+    Explain these details to the user in a clear and conversational manner:
     
-    - Her eyalette **Septicemia** ve **Influenza and pneumonia** için ölüm sayılarını ve toplam 1 milyon kişi başına düşen ölüm oranını belirt.
-    - **{safest_state}** eyaletini neden en güvenli seçenek olarak önerdiğini açık ve net bir şekilde açıkla.
-    - Eğer tercih edilen eyalet **{choosen_state}** değilse:
-      - **{choosen_state}** ile **{safest_state}** arasında iklim, coğrafya veya kültürel benzerlikleri belirt.
-    - Son olarak, kullanıcıya içten ve kısa bir seyahat önerisiyle mesajını tamamla.
+    - For each state, indicate the number of deaths due to **Septicemia** and **Influenza and pneumonia**, and the death rate per 1M.
+    - Explain why **{safest_state}** is the safest option.
+    - If the chosen state is not **{choosen_state}**:
+      - Mention the similarities between **{choosen_state}** and **{safest_state}** in terms of climate, geography, or culture.
+    - Finally, complete the message with a short and friendly travel suggestion to the user.
     """
     
         # LLM çağrısı
@@ -710,15 +710,15 @@ Eyalet listesi: {states}
             response = llm.generate_content(prompt).text
             return response
         except Exception as e:
-            print("Karar LLM hatası:", e)
-            return "⚠️ LLM üzerinden karar verilemedi."
+            print("Decision LLM error:", e)
+            return "⚠️ Decision could not be made via LLM."
     
     # Tam ekran sonuçlar bölümü
-    st.markdown('<h3 class="subheader">🏆 Seyahat Önerileri</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="subheader">🏆 Travel Recommendations</h3>', unsafe_allow_html=True)
     
     try:
         # Önce arkaplan işlemini göster
-        with st.spinner('En güvenli destinasyon belirleniyor...'):
+        with st.spinner('Determining the safest destination...'):
             # LLM sonucu
             safest_state_info = choose_safest_state_via_llm(
                 date=str(selected_date), 
@@ -742,7 +742,7 @@ Eyalet listesi: {states}
         
             
         # Eyalet bilgileri ve öneriler
-        st.markdown('<h3 class="subheader">🌍 Destinasyon Detayları</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="subheader">🌍 Destination Details</h3>', unsafe_allow_html=True)
         
         # Detaylı eyalet bilgileri için sekmeler oluştur
         tabs = st.tabs([f"🏙️ {s}" for s in states])
@@ -750,7 +750,7 @@ Eyalet listesi: {states}
         def clean_llm_html(text):
             # Sadece kapanış etiketi veya boş string ise, None döndür
             if not text or text.strip() in ["", "</div>", "<div>", "<div></div>"]:
-                return "Bu eyalet hakkında bilgi alınamadı."
+                return "No information available for this state."
             # Başta veya sonda kapanış etiketi varsa temizle
             text = text.strip()
             if text.startswith("</div>"):
@@ -775,58 +775,58 @@ Eyalet listesi: {states}
                     with detail_cols[0]:
                         st.markdown(f"""
                         <div class="metric-card">
-                            <div class="metric-label">Septicemia Tahmini</div>
+                            <div class="metric-label">Septicemia Forecast</div>
                             <div class="metric-value">{current_data.get('Septicemia', 'N/A')}</div>
-                            <div class="metric-label">Vaka</div>
+                            <div class="metric-label">Case</div>
                         </div>
                         """, unsafe_allow_html=True)
                         
                     with detail_cols[1]:
                         st.markdown(f"""
                         <div class="metric-card">
-                            <div class="metric-label">Influenza ve Pnömoni</div>
+                            <div class="metric-label">Influenza and Pneumonia</div>
                             <div class="metric-value">{current_data.get('Influenza and pneumonia', 'N/A')}</div>
-                            <div class="metric-label">Vaka</div>
+                            <div class="metric-label">Case</div>
                         </div>
                         """, unsafe_allow_html=True)
                         
                     with detail_cols[2]:
                         st.markdown(f"""
                         <div class="metric-card">
-                            <div class="metric-label">Risk Oranı</div>
+                            <div class="metric-label">Risk Rate</div>
                             <div class="metric-value">{current_data.get('Death Rate per 1M', 'N/A')}</div>
-                            <div class="metric-label">1M başına ölüm</div>
+                            <div class="metric-label">Death Rate per 1M</div>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     # Eyalet hakkında bilgi al
                     state_info_prompt = f"""
-                    {current_state} eyaleti hakkında turistler için kısa ve faydalı bilgiler ver (görsel yerler, kültür, iklim özellikleri).
-                    Özellikle {selected_date.strftime("%B")} ayında ziyaret edilmesinin avantaj ve dezavantajları nelerdir?
+                    Provide short and useful information about {current_state} for tourists (visual places, culture, climate features).
+                    Especially what are the advantages and disadvantages of visiting in {selected_date.strftime("%B")}?
                     """
                     
-                    with st.spinner(f"{current_state} hakkında bilgiler alınıyor..."):
+                    with st.spinner(f"Getting information about {current_state}..."):
                         try:
                             state_info = llm.generate_content(state_info_prompt).text
                             state_info = clean_llm_html(state_info)
                             st.markdown(f"""
                             <div class="info-box">
-                                <h4>📝 {current_state} Hakkında</h4>
+                                <h4>📝 About {current_state}</h4>
                                 {state_info}
                             </div>
                             """, unsafe_allow_html=True)
                         except Exception as e:
-                            st.error(f"Bilgi alınırken bir hata oluştu: {str(e)}")
+                            st.error(f"Error getting information: {str(e)}")
                 else:
-                    st.error(f"{current_state} için veri bulunamadı.")
+                    st.error(f"No data found for {current_state}.")
     
     except Exception as e:
-        st.error(f"Veri işlenirken hata oluştu: {str(e)}")
+        st.error(f"Error processing data: {str(e)}")
     
     # --- Footer ---
     st.markdown("""
     <div class="footer">
-        <p>© 2025 Turizm Sağlık Danışmanı | Bu uygulama yapay zeka destekli tahminler sunmaktadır.</p>
-        <p><small>Not: Seyahat kararlarınızı verirken lütfen resmi sağlık kurumlarının tavsiyelerini de dikkate alınız.</small></p>
+        <p>© 2025 Tourism Health Consultant | This app provides AI-powered predictions.</p>
+        <p><small>Note: When making travel decisions, please consider the recommendations of official health authorities.</small></p>
     </div>
     """, unsafe_allow_html=True)
