@@ -1,6 +1,6 @@
 # SafeTrip 🌍 - AI Travel Health Risk Analyzer
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://safetrip.streamlit.app)
+![safetrip](https://github.com/user-attachments/assets/3f689ee7-42a3-4e3d-afeb-43e6b0de59ae)
 
 SafeTrip is an intelligent travel planning application that analyzes infectious disease risks across US states using AI-powered forecasting. It helps travelers make informed decisions by comparing health risks and recommending safer destinations based on CDC epidemiological data.
 
