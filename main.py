@@ -350,7 +350,7 @@ State list: {states}
         # Benzer eyaletlerin detayları
         st.markdown(f"""
         <div class="info-box">
-            <strong>Seçilen Eyalete Benzer Destinasyonlar:</strong><br>
+            <strong>Similar States to the Selected State:</strong><br>
             {", ".join(states_copy)}
         </div>
         """, unsafe_allow_html=True)
