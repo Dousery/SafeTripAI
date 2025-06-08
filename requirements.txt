@@ -1,11 +1,9 @@
-numpy
-pandas
-datetime
-python-dotenv
 streamlit
+pandas
+numpy
 plotly
+python-dotenv
+google-generativeai
 scipy
 statsmodels
-Pillow
-openai
-langchain
+pillow

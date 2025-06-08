@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import zscore
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -16,6 +15,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
+import google.generativeai as genai
 
 # Rastgeleliğin tekrarlanabilir olması için
 np.random.seed(42)
@@ -129,8 +129,13 @@ st.markdown("""
 
 # --- ENV Ayarları ---
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-os.environ["OPENAI_API_KEY"] = api_key
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    st.error("⚠️ GOOGLE_API_KEY bulunamadı. Lütfen .env dosyasında API anahtarınızı ayarlayın.")
+    st.stop()
+
+genai.configure(api_key=api_key)
+llm = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- Başlık ve Giriş ---
 st.markdown('<h1 class="main-header">🌍 Turizm Destinasyonları için Bulaşıcı Hastalık Danışmanı</h1>', unsafe_allow_html=True)
@@ -230,8 +235,6 @@ with st.sidebar:
 if state != "-- Eyalet seçin --" and selected_date != min_date:
    
     # --- LLM modeli ---
-   llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.3)
-   
    def extract_list_from_response(response: str) -> list[str]:
        try:
            code_blocks = re.findall(r"```python\n(.*?)\n```", response, re.DOTALL)
@@ -257,7 +260,7 @@ if state != "-- Eyalet seçin --" and selected_date != min_date:
    Yalnızca Python listesi formatında 3 eyalet döndür: örneğin ["Arizona", "Nevada", "New Mexico"]
    """
        try:
-           response = llm.invoke(prompt).content
+           response = llm.generate_content(prompt).text
            return extract_list_from_response(response)
        except Exception as e:
            print("Benzer eyalet tahmini hatası:", e)
@@ -702,7 +705,7 @@ if state != "-- Eyalet seçin --" and selected_date != min_date:
    
        # LLM çağrısı
        try:
-           response = llm.invoke(prompt).content
+           response = llm.generate_content(prompt).text
            return response
        except Exception as e:
            print("Karar LLM hatası:", e)
@@ -741,6 +744,18 @@ if state != "-- Eyalet seçin --" and selected_date != min_date:
        
        # Detaylı eyalet bilgileri için sekmeler oluştur
        tabs = st.tabs([f"🏙️ {s}" for s in states])
+       
+       def clean_llm_html(text):
+           # Sadece kapanış etiketi veya boş string ise, None döndür
+           if not text or text.strip() in ["", "</div>", "<div>", "<div></div>"]:
+               return "Bu eyalet hakkında bilgi alınamadı."
+           # Başta veya sonda kapanış etiketi varsa temizle
+           text = text.strip()
+           if text.startswith("</div>"):
+               text = text[6:]
+           if text.endswith("</div>"):
+               text = text[:-6]
+           return text
        
        for i, tab in enumerate(tabs):
            with tab:
@@ -790,7 +805,8 @@ if state != "-- Eyalet seçin --" and selected_date != min_date:
                    
                    with st.spinner(f"{current_state} hakkında bilgiler alınıyor..."):
                        try:
-                           state_info = llm.invoke(state_info_prompt).content
+                           state_info = llm.generate_content(state_info_prompt).text
+                           state_info = clean_llm_html(state_info)
                            st.markdown(f"""
                            <div class="info-box">
                                <h4>📝 {current_state} Hakkında</h4>
